@@ -69,3 +69,9 @@ php artisan serve
 php artisan queue:work
 
 ```
+- Testing
+```bash
+
+php artisan test
+
+```
