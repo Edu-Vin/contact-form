@@ -20,6 +20,8 @@ class ContactTest extends TestCase
 
         parent::setUp();
 
+        Notification::fake();
+
     }
 
     public function testShowContactPage()
@@ -69,8 +71,6 @@ class ContactTest extends TestCase
     public function testSuccessfullFormSubmissionWithoutFile()
     {
 
-        Notification::fake();
-
         $this->post('contact/create', [
             'name' => $this->faker->name,
             'email' => $this->faker->safeEmail,
@@ -88,8 +88,6 @@ class ContactTest extends TestCase
 
     public function testSuccessfullFormSubmissionWithFile()
     {
-
-        Notification::fake();
 
         Storage::fake('local');
 
@@ -110,6 +108,34 @@ class ContactTest extends TestCase
         Notification::assertSentTo(
             new AnonymousNotifiable, NewContact::class
         );
+
+    }
+
+    public function testRateLimiting()
+    {
+
+        $this->post('contact/create', [
+            'name' => $this->faker->name,
+            'email' => $this->faker->safeEmail,
+            'message' => $this->faker->text,
+        ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Form Submitted Successfully')
+            ->assertHeader('X-RATELIMIT-REMAINING', 0);
+
+        Notification::assertSentTo(
+            new AnonymousNotifiable, NewContact::class
+        );
+
+        $this->post('contact/create', [
+            'name' => $this->faker->name,
+            'email' => $this->faker->safeEmail,
+            'message' => $this->faker->text,
+        ])
+            ->assertStatus(302)
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('error');
 
     }
 }
